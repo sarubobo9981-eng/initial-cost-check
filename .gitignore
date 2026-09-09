@@ -32,6 +32,8 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+# ただし、実際の秘密情報を含まないテンプレートファイルは追跡対象に含める
+!.env.local.example
 
 # vercel
 .vercel
