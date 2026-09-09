@@ -48,9 +48,12 @@ export async function POST(request: NextRequest) {
     agreedToPrivacyPolicy: true,
   };
 
-  const attachmentFileName = attachment instanceof File ? attachment.name : undefined;
+  const attachmentData =
+    attachment instanceof File && attachment.size > 0
+      ? { fileName: attachment.name, buffer: Buffer.from(await attachment.arrayBuffer()) }
+      : undefined;
 
-  await notifyNewContact(payload, attachmentFileName);
+  await notifyNewContact(payload, attachmentData);
 
   return NextResponse.json({ ok: true });
 }

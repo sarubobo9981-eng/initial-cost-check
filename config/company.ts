@@ -23,5 +23,5 @@ export const CONTACT_EMAIL = "【問い合わせ用メールアドレスを入�
 // LINE公式アカウント（後から簡単に変更できるよう定数化）
 export const LINE_URL = "https://lin.ee/oA0hKFy";
 
-// 問い合わせフォームの送信先（未設定の場合はAPI Route内でログ出力のみ）
-export const CONTACT_NOTIFICATION_EMAIL = CONTACT_EMAIL;
+// 問い合わせフォームの通知先（サイトに公開表示するCONTACT_EMAILとは独立した値）
+export const CONTACT_NOTIFICATION_EMAIL = "raku.chin.sumika@gmail.com";
