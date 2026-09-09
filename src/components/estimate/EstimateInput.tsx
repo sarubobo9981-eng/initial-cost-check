@@ -109,15 +109,16 @@ export function EstimateInput({ onComplete, onManualFallback }: EstimateInputPro
       { id: "organizing_items", label: "費用項目を整理中", status: "pending" },
     ]);
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setSteps([
-      { id: "checking_files", label: "ファイルを確認中", status: "done" },
-      { id: "reading_text", label: "文字を読み取り中", status: "in_progress" },
-      { id: "organizing_items", label: "費用項目を整理中", status: "pending" },
-    ]);
-
     try {
-      const result = await analyzeEstimateFiles(files);
+      const result = await analyzeEstimateFiles(files, {
+        onUploaded: () => {
+          setSteps([
+            { id: "checking_files", label: "ファイルを確認中", status: "done" },
+            { id: "reading_text", label: "文字を読み取り中", status: "in_progress" },
+            { id: "organizing_items", label: "費用項目を整理中", status: "pending" },
+          ]);
+        },
+      });
       setSteps([
         { id: "checking_files", label: "ファイルを確認中", status: "done" },
         { id: "reading_text", label: "文字を読み取り中", status: "done" },

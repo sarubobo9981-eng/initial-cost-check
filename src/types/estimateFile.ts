@@ -12,6 +12,20 @@ export interface EstimateFile {
   previewUrl?: string;
 }
 
+/**
+ * Vercel Blobへアップロード済みのファイルを指す情報。
+ * ファイル本体ではなくこの情報だけを /api/estimate/analyze へ送信することで、
+ * Vercel Functionsのリクエストボディ上限(4.5MB)を回避する。
+ * nameは元のファイル名ではなく、ランダム化されたBlobのpathnameを保持する
+ * （個人情報を含みうる元のファイル名をサーバーに送らないため）。
+ */
+export interface EstimateBlobFile {
+  url: string;
+  contentType: string;
+  name: string;
+  size: number;
+}
+
 // 最低限対応する形式（JPEG/JPG/PNG/PDF）。
 // HEIC/HEIFはブラウザでのプレビュー表示・デコードが端末依存のため現時点では未対応。
 // 将来対応する際は、ここに "image/heic" / "image/heif" を追加し、

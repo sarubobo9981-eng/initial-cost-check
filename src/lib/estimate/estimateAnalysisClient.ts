@@ -1,4 +1,5 @@
-import { EstimateFile } from "@/types/estimateFile";
+import { upload } from "@vercel/blob/client";
+import { EstimateFile, EstimateBlobFile } from "@/types/estimateFile";
 import { EstimateAnalysisResult } from "@/types/estimateAnalysis";
 
 /** ANTHROPIC_API_KEY未設定など、解析機能自体が利用できない場合 */
@@ -10,15 +11,61 @@ export class EstimateAnalysisRateLimitedError extends Error {}
 /** その他の解析エラー（APIエラー・タイムアウト等） */
 export class EstimateAnalysisError extends Error {}
 
+function extensionForMimeType(mimeType: string): string {
+  if (mimeType === "image/jpeg") return "jpg";
+  if (mimeType === "image/png") return "png";
+  if (mimeType === "application/pdf") return "pdf";
+  return "bin";
+}
+
+// 元のファイル名（個人情報を含みうる）は使わず、ランダムなパス名を生成する
+function randomBlobPathname(mimeType: string): string {
+  const random = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+  return `estimates/${random}.${extensionForMimeType(mimeType)}`;
+}
+
+interface AnalyzeOptions {
+  /** 全ファイルのBlobアップロードが完了した直後に呼ばれる（解析中UIの進捗表示用） */
+  onUploaded?: () => void;
+}
+
 /**
  * 見積書解析APIの呼び出し（クライアント側）。
- * 撮影/写真選択/PDF選択のいずれで集めたファイルでも、同じエンドポイントに送信する。
+ * 撮影/写真選択/PDF選択のいずれで集めたファイルでも、まずVercel Blobへ直接アップロードし、
+ * そのURL情報だけを/api/estimate/analyzeへ送信する
+ * （Vercel Functionsのリクエストボディ上限(4.5MB)を回避するため。ファイル本体はサーバーを経由しない）。
  */
-export async function analyzeEstimateFiles(files: EstimateFile[]): Promise<EstimateAnalysisResult> {
-  const body = new FormData();
-  files.forEach((estimateFile) => body.append("files", estimateFile.file));
+export async function analyzeEstimateFiles(
+  files: EstimateFile[],
+  options?: AnalyzeOptions
+): Promise<EstimateAnalysisResult> {
+  let uploaded: EstimateBlobFile[];
+  try {
+    uploaded = await Promise.all(
+      files.map(async (estimateFile): Promise<EstimateBlobFile> => {
+        const blob = await upload(randomBlobPathname(estimateFile.file.type), estimateFile.file, {
+          access: "private",
+          handleUploadUrl: "/api/estimate/upload-token",
+        });
+        return {
+          url: blob.url,
+          contentType: estimateFile.file.type,
+          name: blob.pathname,
+          size: estimateFile.file.size,
+        };
+      })
+    );
+  } catch {
+    throw new EstimateAnalysisError("ファイルのアップロードに失敗しました。通信環境をご確認のうえ、もう一度お試しください。");
+  }
 
-  const res = await fetch("/api/estimate/analyze", { method: "POST", body });
+  options?.onUploaded?.();
+
+  const res = await fetch("/api/estimate/analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ files: uploaded }),
+  });
 
   if (res.status === 501) {
     const data = await res.json().catch(() => ({ error: undefined }));
