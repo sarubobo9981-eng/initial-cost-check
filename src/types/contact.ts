@@ -1,12 +1,14 @@
+export type ReplyMethod = "email" | "line" | "phone";
+
 export interface ContactFormPayload {
-  name: string;
-  email: string;
+  name?: string;
+  email?: string;
   phone?: string;
-  lineId?: string;
-  propertyName: string;
+  replyMethod: ReplyMethod;
+  propertyName?: string;
   propertyUrl?: string;
   currentAgency?: string;
   desiredMoveInDate?: string;
-  message: string;
+  message?: string;
   agreedToPrivacyPolicy: boolean;
 }

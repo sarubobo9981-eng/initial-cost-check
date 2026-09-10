@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ContactFormPayload } from "@/types/contact";
+import { ContactFormPayload, ReplyMethod } from "@/types/contact";
 import { notifyNewContact } from "@/lib/notifications/notifyService";
 
 export const runtime = "nodejs";
@@ -8,21 +8,28 @@ function isNonEmptyString(value: FormDataEntryValue | null): value is string {
   return typeof value === "string" && value.trim().length > 0;
 }
 
+function toOptionalString(value: FormDataEntryValue | null): string | undefined {
+  return isNonEmptyString(value) ? value : undefined;
+}
+
+function toReplyMethod(value: FormDataEntryValue | null): ReplyMethod {
+  return value === "line" || value === "phone" ? value : "email";
+}
+
 export async function POST(request: NextRequest) {
   const formData = await request.formData();
 
-  const name = formData.get("name");
   const email = formData.get("email");
-  const propertyName = formData.get("propertyName");
-  const message = formData.get("message");
+  const phone = formData.get("phone");
   const agreedToPrivacyPolicy = formData.get("agreedToPrivacyPolicy");
   const attachment = formData.get("attachment");
 
   const errors: string[] = [];
-  if (!isNonEmptyString(name)) errors.push("お名前を入力してください。");
-  if (!isNonEmptyString(email)) errors.push("メールアドレスを入力してください。");
-  if (!isNonEmptyString(propertyName)) errors.push("物件名を入力してください。");
-  if (!isNonEmptyString(message)) errors.push("相談内容を入力してください。");
+  // 返信先（メール・電話番号）のいずれか1つでも入力されていればよい
+  // （LINEでのご相談はフォーム送信を伴わないため、ここには到達しない）
+  if (!isNonEmptyString(email) && !isNonEmptyString(phone)) {
+    errors.push("メールアドレスまたは電話番号を入力してください。");
+  }
   if (agreedToPrivacyPolicy !== "true") errors.push("個人情報の取扱いへの同意が必要です。");
 
   if (errors.length > 0) {
@@ -30,21 +37,15 @@ export async function POST(request: NextRequest) {
   }
 
   const payload: ContactFormPayload = {
-    name: name as string,
-    email: email as string,
-    phone: isNonEmptyString(formData.get("phone")) ? (formData.get("phone") as string) : undefined,
-    lineId: isNonEmptyString(formData.get("lineId")) ? (formData.get("lineId") as string) : undefined,
-    propertyName: propertyName as string,
-    propertyUrl: isNonEmptyString(formData.get("propertyUrl"))
-      ? (formData.get("propertyUrl") as string)
-      : undefined,
-    currentAgency: isNonEmptyString(formData.get("currentAgency"))
-      ? (formData.get("currentAgency") as string)
-      : undefined,
-    desiredMoveInDate: isNonEmptyString(formData.get("desiredMoveInDate"))
-      ? (formData.get("desiredMoveInDate") as string)
-      : undefined,
-    message: message as string,
+    name: toOptionalString(formData.get("name")),
+    email: toOptionalString(email),
+    phone: toOptionalString(phone),
+    replyMethod: toReplyMethod(formData.get("replyMethod")),
+    propertyName: toOptionalString(formData.get("propertyName")),
+    propertyUrl: toOptionalString(formData.get("propertyUrl")),
+    currentAgency: toOptionalString(formData.get("currentAgency")),
+    desiredMoveInDate: toOptionalString(formData.get("desiredMoveInDate")),
+    message: toOptionalString(formData.get("message")),
     agreedToPrivacyPolicy: true,
   };
 

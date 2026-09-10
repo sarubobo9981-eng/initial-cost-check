@@ -9,7 +9,6 @@ import { CostSummaryBar } from "@/components/CostSummaryBar";
 import { CostBreakdown } from "@/components/CostBreakdown";
 import { ReviewableItemsCards } from "@/components/ReviewableItemsCards";
 import { ComparisonResult } from "@/components/ComparisonResult";
-import { MobileStickyCTA } from "@/components/MobileStickyCTA";
 
 type EntryMode = "capture" | "manual";
 
@@ -71,8 +70,6 @@ export function DiagnosisFlow() {
           </div>
         )}
       </div>
-
-      {hasInput && <MobileStickyCTA />}
     </section>
   );
 }
